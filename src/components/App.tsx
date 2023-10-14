@@ -2,7 +2,7 @@ import Avatar from 'components/Avatar'
 import logo from 'assets/logo.svg'
 import { Box, BoxProps } from '@welcome-ui/box'
 
-import ConfigForm from './ConfigFrom'
+import TransformForm from './ConfigFrom'
 
 const randoms = [
   [1, 2],
@@ -13,7 +13,7 @@ const randoms = [
 function App() {
   return (
     <Box maxWidth={800} mx="auto" p="lg">
-      <ConfigForm />
+      <TransformForm />
     </Box>
   )
 }
