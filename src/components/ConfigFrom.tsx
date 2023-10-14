@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import configSchema from '../schema.json'
 import { Field } from '@welcome-ui/field'
 import { Select } from '@welcome-ui/select'
+import { Button } from '@welcome-ui/button'
 
 console.clear()
 
@@ -70,51 +71,40 @@ const tfuns = implKeys(configSchema.$defs.transform_function).map((k) =>
 )
 const tstepIndex = Object.fromEntries(tsteps.map((step) => [step.type, step]))
 
-
-// function deriveSetter(setter, path: (string | number)[], index: number = 0) {
-//   if (index === path.length) { return setter }
-//   const key = path[index]
-//   else if (typeof key === 'string') {
-//     const subSetter = deriveSetter(setter, path, index + 1)
-
-//     return function (subSetter) {
-//       setter(({ ...obj, [key]: subSetter(obj[key]) }))
-//     }
-//   }
-//   else throw new Error('unhandled path: ' + JSON.stringify(path))
-
-// }
-
-let obj = {}
-const originalSetter = function (value) {
-  if (typeof value === 'function') {
-    value = value(obj)
+type deriveKey = string | number
+type derivePath = deriveKey | deriveKey[]
+function deriveSetter(setter, path: derivePath, index: number = 0) {
+  if (!Array.isArray(path)) path = [path]
+  if (index == path.length) {
+    return setter
   }
-  console.log('new obj', JSON.stringify(value))
-  obj = value
-  window.obj = obj
-}
-originalSetter({ a: 1, b: 2 })
-originalSetter({ x: 3 })
-originalSetter((obj) => ({ ...obj, y: 4 }))
-originalSetter({})
-function deriveSetter(setter, key) {
-  return function (update) {
-    const subsetter = (typeof update === 'function')
-      ? update
-      : () => update
-    setter(obj => {
-      return { ...obj, [key]: subsetter(obj[key]) }
-    })
+
+  const key = path[index]
+  let derived = null
+
+  if (typeof key === 'string') {
+    derived = function (update) {
+      const subsetter = typeof update === 'function' ? update : () => update
+      setter((obj) => ({ ...obj, [key]: subsetter(obj[key]) }))
+    }
   }
+  else if (typeof key === 'number') {
+    derived = function (update) {
+      const subsetter = typeof update === 'function' ? update : () => update
+      setter((array) => {
+        const copy = array.slice()
+        copy[key] = subsetter(copy[key])
+        return copy
+      })
+    }
+  }
+  else {
+    throw new Error(
+      'unsupported path key type: ' + typeof key + ': ' + JSON.stringify(path)
+    )
+  }
+  return deriveSetter(derived, path, index + 1)
 }
-const setCoords = deriveSetter(originalSetter, 'coords')
-setCoords({ x: 0 })
-const setX = deriveSetter(setCoords, 'x')
-setX(1)
-const setY = deriveSetter(setCoords, 'y')
-setY(10)
-setY(11)
 
 function ConfigForm() {
   const configID = 'some-uuid'
@@ -132,30 +122,24 @@ function ConfigForm() {
 
   const setTransform = deriveSetter(setConfig, ['transform'])
 
-
   function addTransformStep(type) {
     const step = tstepIndex[type]
     setTransform((steps) => [...steps, { type, params: {} }])
   }
 
-  // const setTransform = deriveSetter(setConfig, ['transform'])
-
-
   const displayedSteps = config.transform.map((step, i) => {
-    // const setParams = deriveSetter(setTransform, [i, 'params'])
-    const setParams = function (newParams: Params) {
-      setTransformSteps((steps) =>
-        steps.map((s, j) => {
-          if (j == i) {
-            return { ...s, params: newParams }
-          } else {
-            return s
-          }
-        })
-      )
-    }
+    const setParams = deriveSetter(setTransform, [i, 'params'])
+    const deleteStep = () =>
+      setTransform((steps) => steps.filter((_, j) => j !== i))
 
-    return <StepConfig stepConfig={step} setParams={setParams} key={i} />
+    return (
+      <StepConfig
+        stepConfig={step}
+        setParams={setParams}
+        deleteStep={deleteStep}
+        key={i}
+      />
+    )
   })
 
   return (
@@ -196,13 +180,7 @@ function isBlockInput(paramDef) {
   return false
 }
 
-function StepConfig({
-  stepConfig,
-  setParams
-}: {
-  stepConfig: StepConfig
-  setParams
-}) {
+function StepConfig({ stepConfig, setParams, deleteStep }) {
   const { type, params } = stepConfig
   const def = tstepIndex[type]
   const [blockInputs, inlineInputs] = listPartition(
@@ -214,6 +192,10 @@ function StepConfig({
   return (
     <div>
       <h2>{def.title}</h2>
+      <Button onClick={deleteStep} size="xxs">
+        X
+      </Button>
+
       <pre>{JSON.stringify(params, null, '  ')}</pre>
       <pre>{JSON.stringify(def, null, '  ')}</pre>
     </div>
