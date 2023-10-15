@@ -2,6 +2,8 @@ import { Box } from '@welcome-ui/box'
 import { Button } from '@welcome-ui/button'
 import { Field } from '@welcome-ui/field'
 import { Flex } from '@welcome-ui/flex'
+import { Toggle } from '@welcome-ui/toggle'
+import { Tab, Tabs, useTab } from '@welcome-ui/tabs'
 import {
   AddIcon,
   CrossIcon,
@@ -151,11 +153,13 @@ function deriveArrayDeleteIndex(setArray, index) {
 }
 
 function ConfigForm() {
+  const tab = useTab({ defaultSelectedId: 'tabTransform' })
+  const [definitionsReady, setDefinitionsReady] = useState(false)
+
   const configID = 'some-uuid'
   const cacheVsn = '1'
   const cacheKey = `config-${configID}-${cacheVsn}`
 
-  const [definitionsReady, setDefinitionsReady] = useState(false)
   useEffect(() => {
     buildConfigDefinitions().then(() => setDefinitionsReady(true))
   }, [definitionsReady])
@@ -180,25 +184,43 @@ function ConfigForm() {
   else
     return (
       <div className="container mx-auto bg-gray-200 p-2">
-        <Flex direction="column">
-          {config.transform.map((step, i) => {
-            const setParams = deriveSetter(setTransform, [i, 'params'])
-            const deleteStep = () =>
-              setTransform((steps) => steps.filter((_, j) => j !== i))
+        <Tab.List store={tab}>
+          <Tab store={tab} id="tabTransform">
+            Transform Configuration
+          </Tab>
+          <Tab store={tab} id="tabJSON">
+            Raw JSON Configuration
+          </Tab>
+        </Tab.List>
+        <Tab.Panel store={tab} tabId="tabTransform">
+          <h2>Transform Configuration</h2>
+          <Flex direction="column">
+            {config.transform.map((step, i) => {
+              const setParams = deriveSetter(setTransform, [i, 'params'])
+              const deleteStep = deriveArrayDeleteIndex(setTransform, i)
 
-            return (
-              <StepConfigInput
-                stepConfig={step}
-                setParams={setParams}
-                deleteStep={deleteStep}
-                key={i}
-              />
-            )
-          })}
-        </Flex>
-        <StepPicker add={(type) => addTransformStep(type)} />
-        <pre>{JSON.stringify(config, null, '  ')}</pre>
-        <pre>{JSON.stringify(definitions, null, '  ')}</pre>
+              return (
+                <StepConfigInput
+                  stepConfig={step}
+                  setParams={setParams}
+                  deleteStep={deleteStep}
+                  key={i}
+                />
+              )
+            })}
+          </Flex>
+          <StepPicker add={(type) => addTransformStep(type)} />
+          <Box style={{ height: '200px' }}>&nbsp;</Box>
+        </Tab.Panel>
+        <Tab.Panel store={tab} tabId="tabJSON">
+          <h2>Raw JSON Configuration</h2>
+          <pre style={{
+            padding: '1rem',
+            backgroundColor: '#ddd',
+            color: '#333',
+            borderRadius: '3px',
+          }}><code >{JSON.stringify(config, null, '  ')}</code></pre>
+        </Tab.Panel>
       </div>
     )
 }
@@ -224,7 +246,13 @@ function FunctionPicker({ add }) {
 
   return (
     <Field label="Add a new transformer">
-      <Select isSearchable options={options} value={null} onChange={add} />
+      <Select
+        isSearchable
+        options={options}
+        value={null}
+        onChange={add}
+        size="xs"
+      />
     </Field>
   )
 }
@@ -251,37 +279,6 @@ function StepConfigInput({ stepConfig, setParams, deleteStep }) {
 
   const { type, params } = stepConfig
   const def = definitions.tstepIndex[type]
-  console.log(`def`, def)
-
-  let [blockInputs, inlineInputs] = listPartition(
-    Object.entries(def.params),
-    ([key, value]) => isBlockInput(value),
-    ([key, value]) => ({ ...value, key: key })
-  )
-
-  blockInputs = blockInputs.map((paramDef) => (
-    <BlockBox key={paramDef.key}>
-      <ParamLabel title={paramDef.key} />
-      <Box style={{ paddingLeft: '2rem' }}>
-        <CfgInput
-          paramDef={paramDef}
-          value={params[paramDef.key]}
-          setValue={deriveSetter(setParams, paramDef.key)}
-        />
-      </Box>
-    </BlockBox>
-  ))
-
-  inlineInputs = inlineInputs.map((paramDef) => (
-    <InlineBox key={paramDef.key}>
-      <ParamLabel title={paramDef.key} />
-      <CfgInput
-        paramDef={paramDef}
-        value={params[paramDef.key]}
-        setValue={deriveSetter(setParams, paramDef.key)}
-      />
-    </InlineBox>
-  ))
 
   return (
     <Flex
@@ -312,22 +309,51 @@ function StepConfigInput({ stepConfig, setParams, deleteStep }) {
 
       {/* Body */}
       {expanded && (
-        <>
-          <Flex
-            direction="row"
-            justify="flex-start"
-            align="flext-end"
-            wrap="wrap"
-          >
-            {inlineInputs}
-          </Flex>
-
-          <Box>{blockInputs}</Box>
-        </>
+        <CfgParams definition={def} params={params} setParams={setParams} />
       )}
-      <pre>{JSON.stringify(params, null, '  ')}</pre>
-      <pre>{JSON.stringify(def, null, '  ')}</pre>
     </Flex>
+  )
+}
+
+function CfgParams({ definition, params, setParams }) {
+  let [blockInputs, inlineInputs] = listPartition(
+    Object.entries(definition.params),
+    ([key, value]) => isBlockInput(value),
+    ([key, value]) => ({ ...value, key: key })
+  )
+
+  blockInputs = blockInputs.map((paramDef) => (
+    <BlockBox key={paramDef.key}>
+      <ParamLabel title={paramDef.key} />
+      <Box style={{ paddingLeft: '2rem' }}>
+        <CfgInput
+          paramDef={paramDef}
+          value={params[paramDef.key]}
+          setValue={deriveSetter(setParams, paramDef.key)}
+        />
+      </Box>
+    </BlockBox>
+  ))
+
+  inlineInputs = inlineInputs.map((paramDef) => (
+    <InlineBox key={paramDef.key}>
+      <ParamLabel title={paramDef.key} />
+      <CfgInput
+        paramDef={paramDef}
+        value={params[paramDef.key]}
+        setValue={deriveSetter(setParams, paramDef.key)}
+      />
+    </InlineBox>
+  ))
+
+  return (
+    <Box>
+      <Flex direction="row" justify="flex-start" align="flext-end" wrap="wrap">
+        {inlineInputs}
+      </Flex>
+
+      <Box>{blockInputs}</Box>
+    </Box>
   )
 }
 
@@ -342,7 +368,6 @@ function CfgButton(props) {
 }
 
 function CfgInput({ paramDef, value, setValue }) {
-  console.log(`paramDef`, paramDef)
   switch (paramDef.type) {
     case 'string':
       return (
@@ -355,6 +380,14 @@ function CfgInput({ paramDef, value, setValue }) {
     case 'tfunction':
       return (
         <CfgInputTFunction
+          paramDef={paramDef}
+          value={value}
+          setValue={setValue}
+        />
+      )
+    case 'boolean':
+      return (
+        <CfgInputBoolean
           paramDef={paramDef}
           value={value}
           setValue={setValue}
@@ -393,23 +426,39 @@ function CfgInputString({ paramDef, value, setValue }) {
   return (
     <InputText
       size="xs"
-      name="firstName"
       value={value || ''}
       onChange={(evt) => setValue(evt.target.value)}
     />
   )
 }
 
+function CfgInputBoolean({ paramDef, value, setValue }) {
+  return (
+    <Box>
+      <Toggle checked={value || false} onChange={(e) => setValue(!value)} />
+    </Box>
+  )
+}
+
 function CfgInputTFunction({ paramDef, value, setValue }) {
   if (!value) {
     return <FunctionPicker add={(type) => setValue({ type, params: {} })} />
+  } else {
+    const def = definitions.tfunctionIndex[value.type]
+
+    return (
+      <Box>
+        <Label p="5" fontFamily="monospace" fontSize="18px" fontWeight="600">
+          {def.title}
+        </Label>
+        <CfgParams
+          definition={def}
+          params={value.params}
+          setParams={deriveSetter(setValue, 'params')}
+        />
+      </Box>
+    )
   }
-  else return (
-    <pre>
-      paramDef: {JSON.stringify(paramDef, null, '  ')}
-      value: {JSON.stringify(value, null, '  ')} ({typeof value})
-    </pre>
-  )
 }
 
 function CfgInputList({ paramDef, value, setValue }) {
@@ -417,25 +466,23 @@ function CfgInputList({ paramDef, value, setValue }) {
 
   const [stagingItemValue, setStagingItemValue] = useState(void 0)
 
-  const shouldAddOnChange = useMemo(() => ['tfunction'].includes(paramDef.items.type), [paramDef.items.type])
+  const shouldAddOnChange = useMemo(
+    () => ['tfunction'].includes(paramDef.items.type),
+    [paramDef.items.type]
+  )
 
   function commitStating() {
     addToList(stagingItemValue)
-    resetStaging()
-  }
-
-  function resetStaging() {
-    setStagingItemValue(void 0)
   }
 
   function addToList(item) {
     setValue((oldVal) => [...(oldVal || []), item])
+    setStagingItemValue(void 0)
   }
 
   const subSetter = shouldAddOnChange
     ? (val) => {
       addToList(val)
-      resetStaging()
     }
     : setStagingItemValue
 
@@ -455,7 +502,7 @@ function CfgInputList({ paramDef, value, setValue }) {
 
   return (
     <Flex direction="column" align="flex-start" style={{ width: '100%' }}>
-      {items}
+      {items.length ? items : <span>No items</span>}
       <HorizontalLine />
       <Flex direction="row">
         <CfgInput
@@ -463,12 +510,9 @@ function CfgInputList({ paramDef, value, setValue }) {
           value={stagingItemValue}
           setValue={subSetter}
         />
-        {!shouldAddOnChange &&
-          <CfgButton
-            icon={<AddIcon />}
-            label="Add"
-            onClick={commitStating}
-          />}
+        {!shouldAddOnChange && (
+          <CfgButton icon={<AddIcon />} label="Add" onClick={commitStating} />
+        )}
       </Flex>
     </Flex>
   )
