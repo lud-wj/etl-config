@@ -1,15 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
-import configSchema from '../schema.json'
-import { Field } from '@welcome-ui/field'
-import { Select } from '@welcome-ui/select'
+import { Box } from '@welcome-ui/box'
 import { Button } from '@welcome-ui/button'
+import { Field } from '@welcome-ui/field'
+import { Flex } from '@welcome-ui/flex'
+import { AddIcon, CrossIcon, DownIcon, TrashIcon, UpIcon } from '@welcome-ui/icons'
 import { InputText } from '@welcome-ui/input-text'
 import { Label } from '@welcome-ui/label'
-import { Flex } from '@welcome-ui/flex'
-import { AddIcon, TrashIcon, DownIcon, UpIcon } from '@welcome-ui/icons'
-import { flexShrink } from '@xstyled/styled-components'
-import { Input } from 'postcss'
-import { Box } from '@welcome-ui/box'
+import { Select } from '@welcome-ui/select'
+import { useCallback, useEffect, useState } from 'react'
+import configSchema from '../schema.json'
 
 interface StepConfig {
   type: string
@@ -109,6 +107,12 @@ function deriveSetter(setter, path: derivePath, index: number = 0) {
   return deriveSetter(derived, path, index + 1)
 }
 
+function deriveArrayDeleteIndex(setArray, index) {
+  return function () {
+    return setArray((array) => array.filter((_, i) => i !== index))
+  }
+}
+
 function ConfigForm() {
   const configID = 'some-uuid'
   const cacheVsn = '1'
@@ -178,7 +182,6 @@ function listPartition(list, predicate, valueFun) {
   return [truthy, falsy]
 }
 
-
 function isBlockInput(paramDef) {
   if (paramDef.type == 'tfunction') return true
   if (paramDef.type == 'array') return true
@@ -197,19 +200,27 @@ function StepConfigInput({ stepConfig, setParams, deleteStep }) {
     ([key, value]) => ({ ...value, key: key })
   )
 
-  blockInputs = blockInputs.map((paramDef) => <BlockBox key={paramDef.key}>
-    <ParamLabel title={paramDef.key} />
-    <CfgInput paramDef={paramDef} value={params[paramDef.key]} setValue={deriveSetter(setParams, paramDef.key)} />
-  </BlockBox>
-  )
+  blockInputs = blockInputs.map((paramDef) => (
+    <BlockBox key={paramDef.key}>
+      <ParamLabel title={paramDef.key} />
+      <CfgInput
+        paramDef={paramDef}
+        value={params[paramDef.key]}
+        setValue={deriveSetter(setParams, paramDef.key)}
+      />
+    </BlockBox>
+  ))
 
-  inlineInputs = inlineInputs.map((paramDef) => <InlineBox key={paramDef.key}>
-    <ParamLabel title={paramDef.key} />
-    <CfgInput paramDef={paramDef} value={params[paramDef.key]} setValue={deriveSetter(setParams, paramDef.key)} />
-  </InlineBox>
-  )
-
-
+  inlineInputs = inlineInputs.map((paramDef) => (
+    <InlineBox key={paramDef.key}>
+      <ParamLabel title={paramDef.key} />
+      <CfgInput
+        paramDef={paramDef}
+        value={params[paramDef.key]}
+        setValue={deriveSetter(setParams, paramDef.key)}
+      />
+    </InlineBox>
+  ))
 
   return (
     <Flex
@@ -272,9 +283,13 @@ function CfgButton(props) {
 function CfgInput({ paramDef, value, setValue }) {
   switch (paramDef.type) {
     case 'string':
-      return <CfgInputString paramDef={paramDef} value={value} setValue={setValue} />
+      return (
+        <CfgInputString paramDef={paramDef} value={value} setValue={setValue} />
+      )
     case 'array':
-      return <CfgInputList paramDef={paramDef} value={value} setValue={setValue} />
+      return (
+        <CfgInputList paramDef={paramDef} value={value} setValue={setValue} />
+      )
     default:
       throw new Error('unhandled paramDef.type: ' + paramDef.type)
   }
@@ -305,14 +320,15 @@ function BlockBox({ children }) {
 }
 
 function CfgInputString({ paramDef, value, setValue }) {
-  return <InputText
-    size="xs"
-    name="firstName"
-    value={value || ''}
-    onChange={(evt) => setValue(evt.target.value)}
-  />
+  return (
+    <InputText
+      size="xs"
+      name="firstName"
+      value={value || ''}
+      onChange={(evt) => setValue(evt.target.value)}
+    />
+  )
 }
-
 
 function CfgInputList({ paramDef, value, setValue }) {
   value = value || []
@@ -327,21 +343,23 @@ function CfgInputList({ paramDef, value, setValue }) {
   console.log(`itemValue`, itemValue)
 
   console.log(`paramDef.items`, paramDef.items)
-  const pushNewValue = () =>
-    setValue((oldVal) => [...(oldVal || []), itemValue])
+  const pushNewValue = () => setValue((oldVal) => [...(oldVal || []), itemValue])
+
+  const items = value.map((item, i) => (
+    <Flex key={i} direction="row">
+      <CfgInput paramDef={paramDef.items} value={item} setValue={deriveSetter(setValue, i)} />
+      <CfgButton icon={<CrossIcon />} onClick={deriveArrayDeleteIndex(setValue, i)} />
+    </Flex>
+  ))
 
   return (
     <Flex direction="column" align="flex-start" style={{ width: '100%' }}>
+      {items}
       <HorizontalLine />
-      <CfgInput paramDef={paramDef.items} value={itemValue} setValue={setter} />
-      <CfgButton
-        icon={<AddIcon />}
-        label="Add"
-        onClick={() => {
-          pushNewValue()
-          setter(void 0)
-        }}
-      />
+      <Flex direction="row">
+        <CfgInput paramDef={paramDef.items} value={itemValue} setValue={setter} />
+        <CfgButton icon={<AddIcon />} label="Add" onClick={() => { pushNewValue(); setter(void 0) }} />
+      </Flex>
     </Flex>
   )
 }
@@ -357,35 +375,6 @@ function HorizontalLine() {
   return <Box style={style} />
 }
 
-function AddNewValue({ itemType, add }) {
-  switch (itemType) {
-    case 'string':
-      return <AddNewString add={add} />
-    default:
-      throw new Error('unhandled add value for item type: ' + itemType)
-  }
-}
 
-function AddNewString({ add }) {
-  const [value, setValue] = useState('')
-  return (
-    <Flex>
-      <InputText
-        size="xs"
-        name="firstName"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-      />
-      <CfgButton
-        icon={<AddIcon />}
-        label="Add"
-        onClick={() => {
-          add(value)
-          setValue('')
-        }}
-      />
-    </Flex>
-  )
-}
 
 export default ConfigForm
