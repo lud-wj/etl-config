@@ -179,11 +179,6 @@ function listPartition(list, predicate, valueFun) {
   return [truthy, falsy]
 }
 
-function objectPartition(obj, predicate) {
-  const [truthy, falsy] = listPartition(Object.entries(obj), predicate)
-
-  return [Object.fromEntries(truthy), Object.fromEntries(falsy)]
-}
 
 function isBlockInput(paramDef) {
   if (paramDef.type == 'tfunction') return true
@@ -201,35 +196,56 @@ function StepConfigInput({ stepConfig, setParams, deleteStep }) {
     ([key, value]) => ({ ...value, key: key })
   )
 
-  blockInputs = blockInputs.map((paramDef) =>
-    makeInput(paramDef, params, setParams)
+  blockInputs = blockInputs.map((paramDef) => <BlockBox key={paramDef.key}>
+    <ParamLabel title={paramDef.key} />
+    {makeInput(paramDef, params, setParams)}
+  </BlockBox>
   )
 
-  inlineInputs = inlineInputs.map((paramDef) =>
-    makeInput(paramDef, params, setParams)
+  inlineInputs = inlineInputs.map((paramDef) => <InlineBox key={paramDef.key}>
+    <ParamLabel title={paramDef.key} />
+    {makeInput(paramDef, params, setParams)}
+  </InlineBox>
   )
 
   const [expanded, setExpanded] = useState(true)
 
   return (
-    <Flex direction="column" border="1px solid #ccc" mb="4" boxShadow="1px 1px 2px #aaa">
-
+    <Flex
+      direction="column"
+      border="1px solid #ccc"
+      mb="4"
+      boxShadow="1px 1px 2px #aaa"
+    >
       {/* Header */}
-      <Flex justifyContent="space-between" align="center" p="0" >
-        <Label p="5" fontFamily="monospace" fontSize="18px" fontWeight="600">{def.title}</Label>
-        <div onClick={() => setExpanded(!expanded)} style={{ flex: "1", alignSelf: "stretch" }}>&nbsp;</div>
+      <Flex justifyContent="space-between" align="center" p="0">
+        <Label p="5" fontFamily="monospace" fontSize="18px" fontWeight="600">
+          {def.title}
+        </Label>
+        <div
+          onClick={() => setExpanded(!expanded)}
+          style={{ flex: '1', alignSelf: 'stretch' }}
+        >
+          &nbsp;
+        </div>
         <Flex pr="4" columnGap="4">
           <CfgButton icon={<TrashIcon />} onClick={deleteStep} />
-          <CfgButton icon={expanded ? <UpIcon /> : <DownIcon />} onClick={() => setExpanded(!expanded)} />
-
+          <CfgButton
+            icon={expanded ? <UpIcon /> : <DownIcon />}
+            onClick={() => setExpanded(!expanded)}
+          />
         </Flex>
       </Flex>
       {/* Body */}
 
-
       {expanded && (
         <>
-          <Flex direction="row" justify="flex-start" align="flext-end" wrap="wrap" >
+          <Flex
+            direction="row"
+            justify="flex-start"
+            align="flext-end"
+            wrap="wrap"
+          >
             {inlineInputs}
           </Flex>
 
@@ -244,10 +260,12 @@ function StepConfigInput({ stepConfig, setParams, deleteStep }) {
 
 function CfgButton(props) {
   const icon = props.icon
-  return <Button {...props} size="xs" backgroundColor="transparent" border="none">
-    {icon}
-    {props.label}
-  </Button>
+  return (
+    <Button {...props} size="xs" backgroundColor="transparent" border="none">
+      {icon}
+      {props.label}
+    </Button>
+  )
 }
 
 function makeInput(paramDef, params, setParams) {
@@ -288,65 +306,69 @@ function BlockBox({ children }) {
 }
 
 function makeInputText(paramDef, value, changeParamValue) {
+  return <InputText
+    size="xs"
+    name="firstName"
+    value={value || ''}
+    onChange={(evt) => changeParamValue(evt.target.value)}
+  />
+}
+
+
+
+function makeInputList(paramDef, value, changeParamValue) {
+  value = value || []
+  const pushNewValue = (newVal) =>
+    changeParamValue((oldVal) => [...(oldVal || []), newVal])
+
   return (
-    <InlineBox key={paramDef.key}>
-      <Label pl="6" pr="3">
-        <ParamLabel title={paramDef.key} />
-      </Label>
-      <InputText
-        size="xs"
-        name="firstName"
-        value={value}
-        onChange={(evt) => changeParamValue(evt.target.value)}
-      />
-    </InlineBox>
+    <Flex direction="column" align="flex-start" style={{ width: '100%' }}>
+      <HorizontalLine />
+      <AddNewValue itemType={paramDef.items.type} add={pushNewValue} />
+    </Flex>
   )
 }
 
-function makeInputList(paramDef, value, changeParamValue) {
-
-  value = value || []
-  const pushNewValue = newVal => changeParamValue(oldVal => [...(oldVal || []), newVal])
-
-  return (
-    <BlockBox key={paramDef.key}>
-      <Box>
-        <Label pl="6" pr="3">
-          <ParamLabel title={paramDef.key} />
-          {`${value.length} item${value.length == 1 ? '' : 's'}`}
-        </Label>
-        <Flex direction="column" align="flex-start" style={{ width: "100%" }}>
-          <Box style={{ borderBottom: '1px solid #ccc', width: '100%', height: '1px', margin: '3px 0', alignSelf: "stretch" }}>
-            {/* horizontal ba */}
-          </Box>
-          <AddNewValue itemType={paramDef.items.type} add={pushNewValue} />
-        </Flex>
-      </Box>
-    </BlockBox>
-  )
+function HorizontalLine() {
+  const style = {
+    borderBottom: '1px solid #ccc',
+    width: '100%',
+    height: '1px',
+    margin: '3px 0',
+    alignSelf: 'stretch'
+  }
+  return <Box style={style} />
 }
 
 function AddNewValue({ itemType, add }) {
-
   switch (itemType) {
-    case 'string': return <AddNewString add={add} />
+    case 'string':
+      return <AddNewString add={add} />
     default:
       throw new Error('unhandled add value for item type: ' + itemType)
-
   }
 }
 
 function AddNewString({ add }) {
   const [value, setValue] = useState('')
-  return <Flex>
-    <InputText
-      size="xs"
-      name="firstName"
-      value={value}
-      onChange={e => setValue(e.target.value)}
-    />
-    <CfgButton icon={<AddIcon />} label="Add" onClick={() => add(value)} />
-  </Flex>
+  return (
+    <Flex>
+      <InputText
+        size="xs"
+        name="firstName"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+      />
+      <CfgButton
+        icon={<AddIcon />}
+        label="Add"
+        onClick={() => {
+          add(value)
+          setValue('')
+        }}
+      />
+    </Flex>
+  )
 }
 
 export default ConfigForm
