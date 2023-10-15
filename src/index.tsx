@@ -4,7 +4,7 @@ import { createTheme, WuiProvider } from '@welcome-ui/core'
 
 const container = document.getElementById('root') as HTMLDivElement
 const root = createRoot(container)
-const theme = createTheme()
+const theme = createTheme({ radii: { sm: '0px', md: '0px', lg: '10px' } })
 
 root.render(
   <WuiProvider theme={theme}>
