@@ -10,7 +10,6 @@ import { AddIcon, TrashIcon, DownIcon, UpIcon } from '@welcome-ui/icons'
 import { flexShrink } from '@xstyled/styled-components'
 import { Input } from 'postcss'
 import { Box } from '@welcome-ui/box'
-console.clear()
 
 interface StepConfig {
   type: string
@@ -187,6 +186,8 @@ function isBlockInput(paramDef) {
 }
 
 function StepConfigInput({ stepConfig, setParams, deleteStep }) {
+  const [expanded, setExpanded] = useState(true)
+
   const { type, params } = stepConfig
   const def = tstepIndex[type]
 
@@ -198,17 +199,17 @@ function StepConfigInput({ stepConfig, setParams, deleteStep }) {
 
   blockInputs = blockInputs.map((paramDef) => <BlockBox key={paramDef.key}>
     <ParamLabel title={paramDef.key} />
-    {makeInput(paramDef, params, setParams)}
+    <CfgInput paramDef={paramDef} value={params[paramDef.key]} setValue={deriveSetter(setParams, paramDef.key)} />
   </BlockBox>
   )
 
   inlineInputs = inlineInputs.map((paramDef) => <InlineBox key={paramDef.key}>
     <ParamLabel title={paramDef.key} />
-    {makeInput(paramDef, params, setParams)}
+    <CfgInput paramDef={paramDef} value={params[paramDef.key]} setValue={deriveSetter(setParams, paramDef.key)} />
   </InlineBox>
   )
 
-  const [expanded, setExpanded] = useState(true)
+
 
   return (
     <Flex
@@ -268,14 +269,12 @@ function CfgButton(props) {
   )
 }
 
-function makeInput(paramDef, params, setParams) {
-  const value = params[paramDef.key]
-  const setValue = deriveSetter(setParams, paramDef.key)
+function CfgInput({ paramDef, value, setValue }) {
   switch (paramDef.type) {
     case 'string':
-      return makeInputText(paramDef, value, setValue)
+      return <CfgInputString paramDef={paramDef} value={value} setValue={setValue} />
     case 'array':
-      return makeInputList(paramDef, value, setValue)
+      return <CfgInputList paramDef={paramDef} value={value} setValue={setValue} />
     default:
       throw new Error('unhandled paramDef.type: ' + paramDef.type)
   }
@@ -305,26 +304,44 @@ function BlockBox({ children }) {
   )
 }
 
-function makeInputText(paramDef, value, changeParamValue) {
+function CfgInputString({ paramDef, value, setValue }) {
   return <InputText
     size="xs"
     name="firstName"
     value={value || ''}
-    onChange={(evt) => changeParamValue(evt.target.value)}
+    onChange={(evt) => setValue(evt.target.value)}
   />
 }
 
 
-
-function makeInputList(paramDef, value, changeParamValue) {
+function CfgInputList({ paramDef, value, setValue }) {
   value = value || []
-  const pushNewValue = (newVal) =>
-    changeParamValue((oldVal) => [...(oldVal || []), newVal])
+
+  const [itemValue, setItemValue] = useState('')
+  const setter = useCallback(function (x) {
+    console.log(`itemValue`, itemValue)
+    console.log(`x`, x)
+    setItemValue(x)
+  }, [])
+
+  console.log(`itemValue`, itemValue)
+
+  console.log(`paramDef.items`, paramDef.items)
+  const pushNewValue = () =>
+    setValue((oldVal) => [...(oldVal || []), itemValue])
 
   return (
     <Flex direction="column" align="flex-start" style={{ width: '100%' }}>
       <HorizontalLine />
-      <AddNewValue itemType={paramDef.items.type} add={pushNewValue} />
+      <CfgInput paramDef={paramDef.items} value={itemValue} setValue={setter} />
+      <CfgButton
+        icon={<AddIcon />}
+        label="Add"
+        onClick={() => {
+          pushNewValue()
+          setter(void 0)
+        }}
+      />
     </Flex>
   )
 }
