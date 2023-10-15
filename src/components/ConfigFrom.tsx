@@ -152,6 +152,10 @@ function deriveArrayDeleteIndex(setArray, index) {
   }
 }
 
+// TODO using tabs cause this warning to show in console: The `children` prop as
+// a function is deprecated. Use the `render` prop instead. See
+// https://ariakit.org/guide/composition
+
 function ConfigForm() {
   const tab = useTab({ defaultSelectedId: 'tabTransform' })
   const [definitionsReady, setDefinitionsReady] = useState(false)
@@ -214,12 +218,16 @@ function ConfigForm() {
         </Tab.Panel>
         <Tab.Panel store={tab} tabId="tabJSON">
           <h2>Raw JSON Configuration</h2>
-          <pre style={{
-            padding: '1rem',
-            backgroundColor: '#ddd',
-            color: '#333',
-            borderRadius: '3px',
-          }}><code >{JSON.stringify(config, null, '  ')}</code></pre>
+          <pre
+            style={{
+              padding: '1rem',
+              backgroundColor: '#ddd',
+              color: '#333',
+              borderRadius: '3px'
+            }}
+          >
+            <code>{JSON.stringify(config, null, '  ')}</code>
+          </pre>
         </Tab.Panel>
       </div>
     )
