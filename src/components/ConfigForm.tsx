@@ -490,8 +490,8 @@ function CfgInputList({ paramDef, value, setValue }) {
 
   const subSetter = shouldAddOnChange
     ? (val) => {
-      addToList(val)
-    }
+        addToList(val)
+      }
     : setStagingItemValue
 
   const items = value.map((item, i) => (

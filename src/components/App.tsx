@@ -2,7 +2,7 @@ import Avatar from 'components/Avatar'
 import logo from 'assets/logo.svg'
 import { Box, BoxProps } from '@welcome-ui/box'
 
-import TransformForm from './ConfigFrom'
+import TransformForm from './ConfigForm'
 
 const randoms = [
   [1, 2],
