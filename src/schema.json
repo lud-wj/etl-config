@@ -21,6 +21,12 @@
     },
     "source__lever.jobs": {
       "etl-name": "Lever",
+      "etl-param-order": [
+        "base_url",
+        "site",
+        "query_string",
+        "max_objects_per_page"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -72,6 +78,10 @@
     },
     "target__welcome_jobs.jobs": {
       "etl-name": "WelcomeJobs",
+      "etl-param-order": [
+        "host",
+        "orga_wa_reference"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -106,6 +116,9 @@
           "$ref": "#/$defs/transform_function__core.foreach"
         },
         {
+          "$ref": "#/$defs/transform_function__core.join_list"
+        },
+        {
           "$ref": "#/$defs/transform_function__core.key_equals"
         },
         {
@@ -128,6 +141,7 @@
         "type": {
           "enum": [
             "core.foreach",
+            "core.join_list",
             "core.key_equals",
             "mapping.search_replace",
             "render.mustache",
@@ -142,6 +156,9 @@
     "transform_function__core.foreach": {
       "description": "This function allows to apply other functions to each item of an input\ncollection.\n",
       "etl-name": "Foreach",
+      "etl-param-order": [
+        "transformers"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -166,9 +183,39 @@
         }
       }
     },
+    "transform_function__core.join_list": {
+      "description": "This function allows to apply other functions to each item of an input\ncollection.\n",
+      "etl-name": "JoinList",
+      "etl-param-order": [
+        "glue"
+      ],
+      "properties": {
+        "params": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "properties": {
+            "glue": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "glue"
+          ]
+        },
+        "type": {
+          "enum": [
+            "core.join_list"
+          ],
+          "type": "string"
+        }
+      }
+    },
     "transform_function__core.key_equals": {
       "description": "Returns `true` if the value associated to the `key` in the input object is\nequal to the given `value`.\n\nIf the value is a number, it will be converted to a string before being\ncompared. Note that there should be no extra digits when comparing floats. For\ninstance, if the source data contains `1.5` and the `value` param is `\"1.50\"`\nthere will be no match. The `value` param should be `\"1.5\"`\n",
       "etl-name": "KeyEquals",
+      "etl-param-order": [
+        "key",
+        "value"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -196,6 +243,9 @@
     "transform_function__mapping.search_replace": {
       "description": "Uses a mapping to search for substrings in the input value and replace those\nwith their mapped value.\n\nAll source values defined in the mapping will be looked for in the input value\nand replaced with their mapped translation.\n",
       "etl-name": "MappedSearchReplace",
+      "etl-param-order": [
+        "mapping_group_id"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -223,6 +273,9 @@
     },
     "transform_function__render.mustache": {
       "etl-name": "RenderMustache",
+      "etl-param-order": [
+        "template"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -246,6 +299,10 @@
     "transform_function__string.append_key": {
       "description": "Appends the value identified by `key` to the given input, concatenated by the\n`glue`.\n\n* If the given input is `nil`, then the object value is returned, without the\n  glue.\n* If the `key` is not defined in the object, or contains an empty value (`nil`\n  or a blank string) then the input value is returned, without the glue.\n* If both are `nil`, an empty string is returned.\n",
       "etl-name": "AppendKey",
+      "etl-param-order": [
+        "glue",
+        "key"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -273,6 +330,11 @@
     },
     "transform_function__string.clean_html": {
       "etl-name": "CleanHtml",
+      "etl-param-order": [
+        "reject_tags",
+        "allow_tags",
+        "strip_attributes"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -355,6 +417,9 @@
     },
     "transform_step__core.delete_keys": {
       "etl-name": "DeleteKeys",
+      "etl-param-order": [
+        "keys"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -380,6 +445,9 @@
     },
     "transform_step__core.exclude_object": {
       "etl-name": "ExcludeObject",
+      "etl-param-order": [
+        "predicates"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -405,6 +473,11 @@
     },
     "transform_step__core.filter_object": {
       "etl-name": "FilterObject",
+      "etl-param-order": [
+        "predicates",
+        "match_all",
+        "exclude_matches"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -438,6 +511,11 @@
     },
     "transform_step__core.generate_key": {
       "etl-name": "GenerateKey",
+      "etl-param-order": [
+        "output_key",
+        "generator",
+        "transformers"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -470,6 +548,10 @@
     },
     "transform_step__core.rename_key": {
       "etl-name": "RenameKey",
+      "etl-param-order": [
+        "from_name",
+        "to_name"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -496,6 +578,10 @@
     },
     "transform_step__core.set_key": {
       "etl-name": "SetKey",
+      "etl-param-order": [
+        "key",
+        "value"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -523,6 +609,11 @@
     "transform_step__core.transform_key": {
       "description": "Takes a value from the object data and applies a sequence of transformers to\nit. The result is stored in the object data under the given output key.\n\nThis step does not delete the input key from the object data, but it will\noverride it if the output and input keys are the same.\n",
       "etl-name": "TransformKey",
+      "etl-param-order": [
+        "input_key",
+        "output_key",
+        "transformers"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -557,6 +648,11 @@
     "transform_step__mapping.map_key": {
       "description": "Uses the mapping system to translate the value of one key and put the result\nin the same or another key.\n",
       "etl-name": "MapKey",
+      "etl-param-order": [
+        "input_key",
+        "output_key",
+        "mapping_group_id"
+      ],
       "properties": {
         "params": {
           "$schema": "http://json-schema.org/draft-07/schema#",

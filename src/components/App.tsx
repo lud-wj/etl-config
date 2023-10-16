@@ -12,7 +12,7 @@ const randoms = [
 
 function App() {
   return (
-    <Box maxWidth={800} mx="auto" p="lg">
+    <Box maxWidth={800} mx="auto">
       <TransformForm />
     </Box>
   )

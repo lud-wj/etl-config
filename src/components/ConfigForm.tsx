@@ -187,7 +187,7 @@ function ConfigForm() {
   if (definitionsReady == false) return <div>Loading...</div>
   else
     return (
-      <div className="container mx-auto bg-gray-200 p-2">
+      <div style={{ backgroundColor: '#efefef', padding: '.5rem 1rem' }}>
         <Tab.List store={tab}>
           <Tab store={tab} id="tabTransform">
             Transform Configuration
@@ -282,6 +282,23 @@ function isBlockInput(paramDef) {
   return false
 }
 
+function Box2(props) {
+  const { children } = props
+  return (
+    <Box
+      style={{
+        backgroundColor: '#fff',
+        border: '1px solid #ccc',
+        boxShadow: '1px 1px 3px #ccc',
+        padding: '3px'
+      }}
+      {...props}
+    >
+      {children}
+    </Box>
+  )
+}
+
 function StepConfigInput({ stepConfig, setParams, deleteStep }) {
   const [expanded, setExpanded] = useState(true)
 
@@ -289,37 +306,41 @@ function StepConfigInput({ stepConfig, setParams, deleteStep }) {
   const def = definitions.tstepIndex[type]
 
   return (
-    <Flex
-      direction="column"
-      border="1px solid #ccc"
-      mb="4"
-      boxShadow="1px 1px 2px #aaa"
-    >
-      {/* Header */}
-      <Flex justifyContent="space-between" align="center" p="0">
-        <Label p="5" fontFamily="monospace" fontSize="18px" fontWeight="600">
+    <Flex direction="row" align="flex-start" style={{ marginBottom: '1rem' }}>
+      <Box2 flex="1 0 0">
+        <Label p="5" fontFamily="monospace" fontSize="18px" fontWeight="400">
           {def.title}
         </Label>
-        <div
-          onClick={() => setExpanded(!expanded)}
-          style={{ flex: '1', alignSelf: 'stretch' }}
-        >
-          &nbsp;
-        </div>
-        <Flex pr="4" columnGap="4">
+      </Box2>
+
+      {expanded && (
+        <Box flex="2 0 min-content">
+          <CfgParams definition={def} params={params} setParams={setParams} />
+        </Box>
+      )}
+
+      <Box2 flex="0 0 0">
+        <Flex direction={'row'}>
           <CfgButton icon={<TrashIcon />} onClick={deleteStep} />
           <CfgButton
             icon={expanded ? <UpIcon /> : <DownIcon />}
             onClick={() => setExpanded(!expanded)}
           />
         </Flex>
-      </Flex>
+      </Box2>
 
       {/* Body */}
-      {expanded && (
-        <CfgParams definition={def} params={params} setParams={setParams} />
-      )}
     </Flex>
+  )
+}
+
+function paramField(paramDef, value, setValue, isBlock = false) {
+  return (
+    <Box2 flex="2 0 0" key={paramDef.key}>
+      <Field label={paramDef.key}>
+        <CfgInput paramDef={paramDef} value={value} setValue={setValue} />
+      </Field>
+    </Box2>
   )
 }
 
@@ -330,29 +351,22 @@ function CfgParams({ definition, params, setParams }) {
     ([key, value]) => ({ ...value, key: key })
   )
 
-  blockInputs = blockInputs.map((paramDef) => (
-    <BlockBox key={paramDef.key}>
-      <ParamLabel title={paramDef.key} />
-      <Box style={{ paddingLeft: '2rem' }}>
-        <CfgInput
-          paramDef={paramDef}
-          value={params[paramDef.key]}
-          setValue={deriveSetter(setParams, paramDef.key)}
-        />
-      </Box>
-    </BlockBox>
-  ))
+  blockInputs = blockInputs.map((paramDef) =>
+    paramField(
+      paramDef,
+      params[paramDef.key],
+      deriveSetter(setParams, paramDef.key),
+      true
+    )
+  )
 
-  inlineInputs = inlineInputs.map((paramDef) => (
-    <InlineBox key={paramDef.key}>
-      <ParamLabel title={paramDef.key} />
-      <CfgInput
-        paramDef={paramDef}
-        value={params[paramDef.key]}
-        setValue={deriveSetter(setParams, paramDef.key)}
-      />
-    </InlineBox>
-  ))
+  inlineInputs = inlineInputs.map((paramDef) =>
+    paramField(
+      paramDef,
+      params[paramDef.key],
+      deriveSetter(setParams, paramDef.key)
+    )
+  )
 
   return (
     <Box>
@@ -406,30 +420,6 @@ function CfgInput({ paramDef, value, setValue }) {
   }
 }
 
-function ParamLabel({ title }) {
-  return (
-    <Label pr="3" fontFamily="monospace">
-      {title + ': '}
-    </Label>
-  )
-}
-
-function InlineBox({ children }) {
-  return (
-    <Flex px="4" py="2" mx="4">
-      {children}
-    </Flex>
-  )
-}
-
-function BlockBox({ children }) {
-  return (
-    <Box px="4" py="2" mx="4">
-      {children}
-    </Box>
-  )
-}
-
 function CfgInputString({ paramDef, value, setValue }) {
   return (
     <InputText
@@ -450,21 +440,34 @@ function CfgInputBoolean({ paramDef, value, setValue }) {
 
 function CfgInputTFunction({ paramDef, value, setValue }) {
   if (!value) {
-    return <FunctionPicker add={(type) => setValue({ type, params: {} })} />
+    return (
+      <Box style={{ paddingLeft: '.5rem' }}>
+        <FunctionPicker add={(type) => setValue({ type, params: {} })} />
+      </Box>
+    )
   } else {
     const def = definitions.tfunctionIndex[value.type]
 
     return (
-      <Box>
-        <Label p="5" fontFamily="monospace" fontSize="18px" fontWeight="600">
-          {def.title}
-        </Label>
-        <CfgParams
-          definition={def}
-          params={value.params}
-          setParams={deriveSetter(setValue, 'params')}
-        />
-      </Box>
+      <Flex
+        direction="row"
+        align="flex-start"
+        marginBottom="1rem"
+        style={{ paddingLeft: '.5rem' }}
+      >
+        <Box2 flex="1 0 0">
+          <Label p="5" fontFamily="monospace" fontSize="18px" fontWeight="400">
+            {def.title}
+          </Label>
+        </Box2>
+        <Box flex="2 0 min-content">
+          <CfgParams
+            definition={def}
+            params={value.params}
+            setParams={deriveSetter(setValue, 'params')}
+          />
+        </Box>
+      </Flex>
     )
   }
 }
@@ -496,11 +499,13 @@ function CfgInputList({ paramDef, value, setValue }) {
 
   const items = value.map((item, i) => (
     <Flex key={i} direction="row">
-      <CfgInput
-        paramDef={paramDef.items}
-        value={item}
-        setValue={deriveSetter(setValue, i)}
-      />
+      <Box flex="2 0 0">
+        <CfgInput
+          paramDef={paramDef.items}
+          value={item}
+          setValue={deriveSetter(setValue, i)}
+        />
+      </Box>
       <CfgButton
         icon={<CrossIcon />}
         onClick={deriveArrayDeleteIndex(setValue, i)}
@@ -509,8 +514,12 @@ function CfgInputList({ paramDef, value, setValue }) {
   ))
 
   return (
-    <Flex direction="column" align="flex-start" style={{ width: '100%' }}>
-      {items.length ? items : <span>No items</span>}
+    <Flex direction="column" align="stretch">
+      {items.length ? (
+        items
+      ) : (
+        <Box style={{ paddingLeft: '.5rem' }}>No items</Box>
+      )}
       <HorizontalLine />
       <Flex direction="row">
         <CfgInput
@@ -528,11 +537,9 @@ function CfgInputList({ paramDef, value, setValue }) {
 
 function HorizontalLine() {
   const style = {
-    borderBottom: '1px solid #ccc',
-    width: '100%',
+    borderBottom: '1px solid #efefef',
     height: '1px',
-    margin: '3px 0',
-    alignSelf: 'stretch'
+    margin: '3px 0'
   }
   return <Box style={style} />
 }
